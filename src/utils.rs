@@ -5,15 +5,6 @@ use std::str::FromStr;
 use reqwest::blocking::Client;
 use reqwest::header::{HeaderMap, HeaderValue, HeaderName};
 
-struct Collector(Vec<u8>);
-
-impl Handler for Collector {
-    fn write(&mut self, data: &[u8]) -> Result<usize, WriteError> {
-        self.0.extend_from_slice(data);
-        Ok(data.len())
-    }
-}
-
 pub fn post(url: &str, headers: &HashMap<String, String>)->Result<String, String>{
     let mut header_map = HeaderMap::new();
     for keyvalue in headers{
@@ -24,12 +15,11 @@ pub fn post(url: &str, headers: &HashMap<String, String>)->Result<String, String
         .default_headers(header_map)
         .build()
         .unwrap();
-    match client.post(url).send(){
-        Ok()
-
-
+    let result = client.post(url).send();
+    match result{
+        Ok(response) => Ok(response.text().unwrap()),
+        Err(status) => Err(status.to_string()),
     }
-
 }
 
 pub fn read_from_toml(filename: &str)->HashMap<String, String>{
