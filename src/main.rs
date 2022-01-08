@@ -11,10 +11,10 @@ fn main() {
     let token = config.get("ACCESS_TOKEN").unwrap();
     let shared_secret = config.get("SHARED_SECRET").unwrap();
     let bot = Bot::new(protocol, base_uri, token, shared_secret);
-    let room = "!ayQGacclEOtNNfEicP";
+    let room = "!vWjVZOSPcAcQrJyqVG";
     let text = "Mensaje de prueba";
     bot.send_simple_message(room, text);
-    bot.send_makrdown_message(room, "Esto es **negrita** y esto *cursiva*");
+    bot.send_makrdown_message(room, "Esto es **negrita** y esto *cursiva* con **markdown**");
     match bot.request_nonce(){
         Ok(result) => println!("{}", result),
         Err(result) => println!("{}", result),

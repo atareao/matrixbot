@@ -50,12 +50,20 @@ impl Bot{
         let mut body: HashMap<&str, &str> = HashMap::new();
         body.insert("msgtype", "m.text");
         body.insert("body", text);
-        let result = post(&url, &headers, body.to_string());
+        let result = post(&url, &headers, Some(body.to_string()));
         match result{
             Ok(response) => println!("OK: {}", response.text().unwrap()),
             Err(response) => println!("Err: {}", response.to_string()),
         }
     }
+    pub fn join_room(&self, room: &str) -> Result<Response, Error>{
+        let url = format!("{}://{}/_matrix/client/r0/rooms/{}:{}/join",
+               self.protocol, self.base_uri, room, self.base_uri);
+        let mut headers: HashMap<String, String> = HashMap::new();
+        headers.insert("Authorization".to_string(), format!("Bearer {}", self.token));
+        post(&url, &headers, None)
+    }
+
     pub fn send_makrdown_message(&self, room: &str, text: &str){
         let url = format!("{}://{}/_matrix/client/r0/rooms/{}:{}/send/m.room.message",
                self.protocol, self.base_uri, room, self.base_uri);
@@ -72,7 +80,7 @@ impl Bot{
         body.insert("body", text);
         body.insert("formatted_body", &html);
         println!("Resultado: {}", body.to_string());
-        let result = post(&url, &headers, body.to_string());
+        let result = post(&url, &headers, Some(body.to_string()));
         match result{
             Ok(response) => println!("OK: {}", response.text().unwrap()),
             Err(response) => println!("Err: {}", response.to_string()),
@@ -107,7 +115,7 @@ fn get(url: &str, headers: &HashMap<String, String>)->Result<Response, Error>{
     client.get(url).send()
 }
 
-pub fn post(url: &str, headers: &HashMap<String, String>, body: String)->Result<Response, Error>{
+pub fn post(url: &str, headers: &HashMap<String, String>, body: Option<String>)->Result<Response, Error>{
     let mut header_map = HeaderMap::new();
     for keyvalue in headers{
         header_map.insert(HeaderName::from_str(keyvalue.0).unwrap(),
@@ -117,7 +125,10 @@ pub fn post(url: &str, headers: &HashMap<String, String>, body: String)->Result<
         .default_headers(header_map)
         .build()
         .unwrap();
-    client.post(url).body(body).send()
+    match body{
+        Some(content) => client.post(url).body(content).send(),
+        None => client.post(url).send(),
+    }
 }
 
 pub fn generate_mac(shared_secret: &str, nonce: &str, user: &str, password: &str, admin: Option<bool>, user_type: Option<&str>) -> String{
@@ -166,10 +177,4 @@ fn test_remove_external_quotes(){
     let ejemplo = "\"ejemplo\"";
     assert_eq!("ejemplo", remove_external_quotes(ejemplo));
 
-}
-
-#[test]
-fn test_parse_special_chars(){
-    let ejemplo ="<p>";
-    assert_eq!("\\u003cp\\u003e", parse_special_chars(ejemplo));
 }
