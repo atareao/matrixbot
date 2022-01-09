@@ -5,25 +5,10 @@ use reqwest::header::{HeaderMap, HeaderValue, HeaderName};
 use reqwest::Error;
 use sha1::Sha1;
 use hmac::{Hmac, Mac};
-use serde_json::Value;
+use serde_json::{Value, json};
 use regex::Regex;
 
 type HmacSha1 = Hmac<Sha1>;
-
-trait Json{
-    fn to_string(&self) -> String;
-}
-
-impl Json for HashMap<&str, &str>{
-    fn to_string(&self) -> String{
-        let mut items: Vec<String> = Vec::new();
-        for (key, value) in self.iter(){
-            items.push(format!("\"{}\": \"{}\"", key, value));
-        }
-        let result = vec!["{".to_string(), items.join(","), "}".to_string()];
-        result.concat()
-    }
-}
 
 pub struct Bot{
     protocol: String,
@@ -47,10 +32,11 @@ impl Bot{
         println!("URL: {}", url);
         let mut headers: HashMap<String, String> = HashMap::new();
         headers.insert("Authorization".to_string(), format!("Bearer {}", self.token));
-        let mut body: HashMap<&str, &str> = HashMap::new();
-        body.insert("msgtype", "m.text");
-        body.insert("body", text);
-        let result = post(&url, &headers, Some(body.to_string()));
+        let body = json!({
+            "msgtype": "m.text",
+            "body": text
+        });
+        let result = post(&url, &headers, Some(serde_json::to_string(&body).unwrap()));
         match result{
             Ok(response) => println!("OK: {}", response.text().unwrap()),
             Err(response) => println!("Err: {}", response.to_string()),
@@ -70,17 +56,17 @@ impl Bot{
         println!("URL: {}", url);
         let mut headers: HashMap<String, String> = HashMap::new();
         headers.insert("Authorization".to_string(), format!("Bearer {}", self.token));
-        let mut body: HashMap<&str, &str> = HashMap::new();
         let mut html = markdown::to_html(text);
         //html = parse_special_chars(&html[..html.len()-1]);
         html = html[..html.len()-1].to_string();
         println!("{}", &html);
-        body.insert("msgtype", "m.text");
-        body.insert("format", "org.matrix.custom.html");
-        body.insert("body", text);
-        body.insert("formatted_body", &html);
-        println!("Resultado: {}", body.to_string());
-        let result = post(&url, &headers, Some(body.to_string()));
+        let body = json!({
+            "msgtype": "m.text",
+            "format": "org.matrix.custom.html",
+            "body": text,
+            "formatted_body": html
+        });
+        let result = post(&url, &headers, Some(serde_json::to_string(&body).unwrap()));
         match result{
             Ok(response) => println!("OK: {}", response.text().unwrap()),
             Err(response) => println!("Err: {}", response.to_string()),
@@ -105,17 +91,21 @@ impl Bot{
                                   self.protocol, self.base_uri);
                 let v: Value = serde_json::from_str(&response.text().unwrap()).unwrap();
                 let nonce = remove_external_quotes(&v["nonce"].to_string());
+                println!("Nonce: {}", &nonce);
                 let mac = generate_mac(&self.shared_secret, &nonce, username,
                                        password, admin, None);
+                println!("mac: {}", &mac);
                 let mut headers: HashMap<String, String> = HashMap::new();
                 headers.insert("Authorization".to_string(), format!("Bearer {}", self.token));
-                let mut body: HashMap<&str, &str> = HashMap::new();
-                body.insert("nonce", &nonce);
-                body.insert("username", username);
-                body.insert("password", password);
-                body.insert("admin", if admin {"true"} else {"false"});
-                body.insert("mac", &mac);
-                post(&url, &headers, Some(body.to_string()))
+                let body = json!({
+                    "nonce": &nonce,
+                    "username": username,
+                    "password": password,
+                    "admin": admin,
+                    "mac": mac
+                });
+                println!("Body: {}", serde_json::to_string(&body).unwrap());
+                post(&url, &headers, Some(serde_json::to_string(&body).unwrap()))
             },
             Err(result) => Err(result),
         }

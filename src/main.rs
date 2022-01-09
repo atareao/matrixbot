@@ -13,8 +13,8 @@ fn main() {
     let bot = Bot::new(protocol, base_uri, token, shared_secret);
     let room = "!vWjVZOSPcAcQrJyqVG";
     let text = "Mensaje de prueba";
-    //bot.send_simple_message(room, text);
-    //bot.send_markdown_message(room, "Esto es **negrita** y esto *cursiva* con **markdown**");
+    bot.send_simple_message(room, text);
+    bot.send_markdown_message(room, "Esto es **negrita** y esto *cursiva* con **markdown**");
     match bot.create_user("pepito", "pepito", false){
         Ok(response) => println!("Ok: {}", response.text().unwrap()),
         Err(response) => println!("Error: {}", response.to_string()),
