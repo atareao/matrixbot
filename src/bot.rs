@@ -64,7 +64,7 @@ impl Bot{
         post(&url, &headers, None)
     }
 
-    pub fn send_makrdown_message(&self, room: &str, text: &str){
+    pub fn send_markdown_message(&self, room: &str, text: &str){
         let url = format!("{}://{}/_matrix/client/r0/rooms/{}:{}/send/m.room.message",
                self.protocol, self.base_uri, room, self.base_uri);
         println!("URL: {}", url);
@@ -87,18 +87,46 @@ impl Bot{
         }
 
     }
-    pub fn request_nonce(&self)->Result<String, String>{
+    pub fn is_username_vailable(&self, username: &str) -> bool{
+        let url = format!("{}://{}/_matrix/client/r0/available?username={}",
+                          self.protocol, self.base_uri, username);
+        let mut headers: HashMap<String, String> = HashMap::new();
+        headers.insert("Authorization".to_string(), format!("Bearer {}", self.token));
+        match get(&url, &headers){
+            Ok(response) => response.status() == 200,
+            _ => false,
+        }
+    }
+
+    pub fn create_user(&self, username: &str, password: &str, admin: bool)->Result<Response, Error>{
+        match self.request_nonce(){
+            Ok(response) => {
+                let url = format!("{}://{}/_synapse/admin/v1/register",
+                                  self.protocol, self.base_uri);
+                let v: Value = serde_json::from_str(&response.text().unwrap()).unwrap();
+                let nonce = remove_external_quotes(&v["nonce"].to_string());
+                let mac = generate_mac(&self.shared_secret, &nonce, username,
+                                       password, admin, None);
+                let mut headers: HashMap<String, String> = HashMap::new();
+                headers.insert("Authorization".to_string(), format!("Bearer {}", self.token));
+                let mut body: HashMap<&str, &str> = HashMap::new();
+                body.insert("nonce", &nonce);
+                body.insert("username", username);
+                body.insert("password", password);
+                body.insert("admin", if admin {"true"} else {"false"});
+                body.insert("mac", &mac);
+                post(&url, &headers, Some(body.to_string()))
+            },
+            Err(result) => Err(result),
+        }
+    }
+
+    fn request_nonce(&self)->Result<Response, Error>{
         let url = format!("{}://{}/_synapse/admin/v1/register",
                self.protocol, self.base_uri);
         let mut headers: HashMap<String, String> = HashMap::new();
         headers.insert("Authorization".to_string(), format!("Bearer {}", self.token));
-        match get(&url, &headers) {
-            Ok(response) => {
-                let v: Value = serde_json::from_str(&response.text().unwrap()).unwrap();
-                Ok(remove_external_quotes(&v["nonce"].to_string()))
-            },
-            Err(result) => Err(result.to_string())
-        }
+        get(&url, &headers)
     }
 
 }
@@ -131,7 +159,7 @@ pub fn post(url: &str, headers: &HashMap<String, String>, body: Option<String>)-
     }
 }
 
-pub fn generate_mac(shared_secret: &str, nonce: &str, user: &str, password: &str, admin: Option<bool>, user_type: Option<&str>) -> String{
+pub fn generate_mac(shared_secret: &str, nonce: &str, user: &str, password: &str, admin: bool, user_type: Option<&str>) -> String{
     let mut hasher = HmacSha1::new_from_slice(shared_secret.as_bytes()).unwrap();
     hasher.update(nonce.as_bytes());
     hasher.update(b"\x00");
@@ -139,7 +167,7 @@ pub fn generate_mac(shared_secret: &str, nonce: &str, user: &str, password: &str
     hasher.update(b"\x00");
     hasher.update(password.as_bytes());
     hasher.update(b"\x00");
-    if let Some(_isadmin) = admin{
+    if admin{
         hasher.update(b"admin");
     }else{
         hasher.update(b"notadmin");
@@ -158,7 +186,7 @@ fn test_generate_mac(){
     let nonce = "nonce";
     let user = "user";
     let password = "password";
-    let admin = None;
+    let admin = false;
     let user_type = None;
     let result = generate_mac(shared_secret, nonce, user, password, admin, user_type);
     assert_eq!(result, "3b56e9050e1a170f8805c57537f96a36c02e29f0");
