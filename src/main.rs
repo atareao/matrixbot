@@ -3,6 +3,7 @@ mod bot;
 
 use crate::utils::read_from_toml;
 use crate::bot::Bot;
+use clap::{App, Arg, Subcommand};
 
 fn main() {
     let config = read_from_toml(".env");
@@ -11,6 +12,38 @@ fn main() {
     let token = config.get("ACCESS_TOKEN").unwrap();
     let shared_secret = config.get("SHARED_SECRET").unwrap();
     let bot = Bot::new(protocol, base_uri, token, shared_secret);
+    let matches = App::new("matrixbot")
+        .version("1.0")
+        .author("Lorenzo Carbonell <a.k.a. atareao>")
+        .about("A cerca de")
+        .arg(Arg::new("debug")
+             .short('d')
+             .long("debug")
+             .takes_value(false))
+        .subcommand(App::new("message")
+                    .about("Send message")
+                    .arg(Arg::new("room")
+                         .short('r')
+                         .required(true)
+                         .takes_value(true))
+                    .arg(Arg::new("text")
+                         .short('t')
+                         .required(true)
+                         .takes_value(true))
+                    .arg(Arg::new("markdown")
+                         .short('m')
+                         .takes_value(false)))
+        .get_matches();
+    if let Some(matches) = matches.subcommand_matches("message"){
+        let room = matches.value_of("room").unwrap();
+        let text = matches.value_of("text").unwrap();
+        if matches.is_present("markdown"){
+            bot.send_markdown_message(room, text)
+        }else{
+            bot.send_simple_message(room, text)
+        }
+    }
+    /*
     let room = "!vWjVZOSPcAcQrJyqVG";
     let text = "Mensaje de prueba";
     bot.send_simple_message(room, text);
@@ -24,4 +57,5 @@ fn main() {
     }else{
         println!("Pepito no está disponible")
     }
+    */
 }
