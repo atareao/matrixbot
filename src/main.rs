@@ -3,7 +3,12 @@ mod bot;
 
 use crate::utils::read_from_toml;
 use crate::bot::Bot;
-use clap::{App, Arg, Subcommand};
+use clap::{App, Arg, AppSettings};
+
+const NAME: &str =env!("CARGO_PKG_NAME");
+const DESCRIPTION: &str =env!("CARGO_PKG_DESCRIPTION");
+const VERSION: &str =env!("CARGO_PKG_VERSION");
+const AUTHORS: &str =env!("CARGO_PKG_AUTHORS");
 
 fn main() {
     let config = read_from_toml(".env");
@@ -12,14 +17,32 @@ fn main() {
     let token = config.get("ACCESS_TOKEN").unwrap();
     let shared_secret = config.get("SHARED_SECRET").unwrap();
     let bot = Bot::new(protocol, base_uri, token, shared_secret);
-    let matches = App::new("matrixbot")
-        .version("1.0")
-        .author("Lorenzo Carbonell <a.k.a. atareao>")
-        .about("A cerca de")
+    let matches = App::new(NAME)
+        .version(VERSION)
+        .author(AUTHORS)
+        .about(DESCRIPTION)
+        .setting(AppSettings::ArgRequiredElseHelp)
         .arg(Arg::new("debug")
              .short('d')
              .long("debug")
              .takes_value(false))
+        .subcommand(App::new("create_user")
+                    .about("Manage user")
+                    .arg(Arg::new("username")
+                         .help("The username")
+                         .short('u')
+                         .required(true)
+                         .takes_value(true))
+                    .arg(Arg::new("password")
+                         .help("Password for the user")
+                         .short('p')
+                         .required(true)
+                         .takes_value(true))
+                    .arg(Arg::new("admin")
+                         .help("if present set user as admin")
+                         .short('a')
+                         .required(false)
+                         .takes_value(false)))
         .subcommand(App::new("message")
                     .about("Send message")
                     .arg(Arg::new("room")
@@ -42,20 +65,13 @@ fn main() {
         }else{
             bot.send_simple_message(room, text)
         }
+    }else if let Some(mathes) = matches.subcommand_matches("create_user"){
+        let username = matches.value_of("username").unwrap();
+        let password = matches.value_of("password").unwrap();
+        let admin = mathes.is_present("admin");
+        match bot.create_user(username, password, admin){
+            Ok(result) => println!("User created: {}", result.status()),
+            Err(result) => println!("Can not create the user: {}", result),
+        }
     }
-    /*
-    let room = "!vWjVZOSPcAcQrJyqVG";
-    let text = "Mensaje de prueba";
-    bot.send_simple_message(room, text);
-    bot.send_markdown_message(room, "Esto es **negrita** y esto *cursiva* con **markdown**");
-    match bot.create_user("pepito", "pepito", false){
-        Ok(response) => println!("Ok: {}", response.text().unwrap()),
-        Err(response) => println!("Error: {}", response.to_string()),
-    }
-    if bot.is_username_vailable("pepito"){
-        println!("Pepito está disponible")
-    }else{
-        println!("Pepito no está disponible")
-    }
-    */
 }

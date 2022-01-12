@@ -133,7 +133,7 @@ fn get(url: &str, headers: &HashMap<String, String>)->Result<Response, Error>{
     client.get(url).send()
 }
 
-pub fn post(url: &str, headers: &HashMap<String, String>, body: Option<String>)->Result<Response, Error>{
+fn post(url: &str, headers: &HashMap<String, String>, body: Option<String>)->Result<Response, Error>{
     let mut header_map = HeaderMap::new();
     for keyvalue in headers{
         header_map.insert(HeaderName::from_str(keyvalue.0).unwrap(),
@@ -149,7 +149,7 @@ pub fn post(url: &str, headers: &HashMap<String, String>, body: Option<String>)-
     }
 }
 
-pub fn generate_mac(shared_secret: &str, nonce: &str, user: &str, password: &str, admin: bool, user_type: Option<&str>) -> String{
+fn generate_mac(shared_secret: &str, nonce: &str, user: &str, password: &str, admin: bool, user_type: Option<&str>) -> String{
     let mut hasher = HmacSha1::new_from_slice(shared_secret.as_bytes()).unwrap();
     hasher.update(nonce.as_bytes());
     hasher.update(b"\x00");
