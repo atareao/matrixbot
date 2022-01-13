@@ -42,6 +42,17 @@ impl Bot{
             Err(response) => println!("Err: {}", response.to_string()),
         }
     }
+
+    pub fn create_room(&self, room_alias_name: &str) -> Result<Response, Error>{
+        let url = format!("{}://{}/_matrix/client/r0/createRoom",
+               self.protocol, self.base_uri);
+        let mut headers: HashMap<String, String> = HashMap::new();
+        headers.insert("Authorization".to_string(), format!("Bearer {}", self.token));
+        let body = json!({
+            "room_alias_name": room_alias_name
+        });
+        post(&url, &headers, Some(serde_json::to_string(&body).unwrap()))
+    }
     pub fn join_room(&self, room: &str) -> Result<Response, Error>{
         let url = format!("{}://{}/_matrix/client/r0/rooms/{}:{}/join",
                self.protocol, self.base_uri, room, self.base_uri);

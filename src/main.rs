@@ -26,10 +26,17 @@ fn main() {
              .short('d')
              .long("debug")
              .takes_value(false))
+        .subcommand(App::new("create_room")
+                    .about("Create room")
+                    .arg(Arg::new("roomname")
+                         .help("The room name")
+                         .short('r')
+                         .required(true)
+                         .takes_value(true)))
         .subcommand(App::new("create_user")
                     .about("Manage user")
                     .arg(Arg::new("username")
-                         .help("The username")
+                         .help("The user name")
                          .short('u')
                          .required(true)
                          .takes_value(true))
@@ -72,6 +79,12 @@ fn main() {
         match bot.create_user(username, password, admin){
             Ok(result) => println!("User created: {}", result.status()),
             Err(result) => println!("Can not create the user: {}", result),
+        }
+    }else if let Some(mathes) = matches.subcommand_matches("create_room"){
+        let roomname = matches.value_of("roomname").unwrap();
+        match bot.create_room(roomname){
+            Ok(result) => println!("Room created: {}", result.status()),
+            Err(result) => println!("Can not create the room: {}", result),
         }
     }
 }
