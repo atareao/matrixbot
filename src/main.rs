@@ -26,6 +26,45 @@ fn main() {
              .short('d')
              .long("debug")
              .takes_value(false))
+        .subcommand(App::new("create")
+                    .about("Create room, user (to get more info set object)")
+                    .subcommand(App::new("user")
+                                .about("Create user")
+                                .arg(Arg::new("username")
+                                     .help("The user name")
+                                     .short('u')
+                                     .required(true)
+                                     .takes_value(true))
+                                .arg(Arg::new("password")
+                                     .help("Password for the user")
+                                     .short('p')
+                                     .required(true)
+                                     .takes_value(true))
+                                .arg(Arg::new("admin")
+                                     .help("if present set user as admin")
+                                     .short('a')
+                                     .required(false)
+                                     .takes_value(false))
+                                )
+                    .subcommand(App::new("room")
+                                .about("Create room")
+                                .arg(Arg::new("room_name")
+                                     .help("The room name")
+                                     .short('r')
+                                     .required(true)
+                                     .takes_value(true)
+                                     )
+                                )
+                    )
+        .subcommand(App::new("remove")
+                    .about("Remove room, user (to get more info set object)")
+                    .subcommand(App::new("user")
+                                .about("Remove user")
+                                )
+                    .subcommand(App::new("room")
+                                .about("Remove room")
+                                )
+                    )
         .subcommand(App::new("create_room")
                     .about("Create room")
                     .arg(Arg::new("roomname")
@@ -64,6 +103,23 @@ fn main() {
                          .short('m')
                          .takes_value(false)))
         .get_matches();
+    if let Some(sub) = matches.subcommand_matches("create"){
+        if let Some(subsub) = sub.subcommand_matches("user"){
+            let username = subsub.value_of("username").unwrap();
+            let password = subsub.value_of("password").unwrap();
+            let admin = subsub.is_present("admin");
+            match bot.create_user(username, password, admin){
+                Ok(result) => println!("User created: {}", result.status()),
+                Err(result) => println!("Can not create the user: {}", result),
+            }
+        }else if let Some(subsub) = sub.subcommand_matches("room"){
+            let roomname = subsub.value_of("roomname").unwrap();
+            match bot.create_room(roomname){
+                Ok(result) => println!("Room created: {}", result.status()),
+                Err(result) => println!("Can not create the room: {}", result),
+            }
+        }
+    }
     if let Some(matches) = matches.subcommand_matches("message"){
         let room = matches.value_of("room").unwrap();
         let text = matches.value_of("text").unwrap();
