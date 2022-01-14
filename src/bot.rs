@@ -7,6 +7,7 @@ use sha1::Sha1;
 use hmac::{Hmac, Mac};
 use serde_json::{Value, json};
 use regex::Regex;
+use urlencoding::encode;
 
 type HmacSha1 = Hmac<Sha1>;
 
@@ -28,8 +29,7 @@ impl Bot{
     }
     pub fn send_simple_message(&self, room: &str, text: &str){
         let url = format!("{}://{}/_matrix/client/r0/rooms/{}:{}/send/m.room.message",
-               self.protocol, self.base_uri, room, self.base_uri);
-        println!("URL: {}", url);
+               self.protocol, self.base_uri, encode(room), self.base_uri);
         let mut headers: HashMap<String, String> = HashMap::new();
         headers.insert("Authorization".to_string(), format!("Bearer {}", self.token));
         let body = json!({
@@ -53,18 +53,36 @@ impl Bot{
         });
         post(&url, &headers, Some(serde_json::to_string(&body).unwrap()))
     }
-    pub fn join_room(&self, room: &str) -> Result<Response, Error>{
-        let url = format!("{}://{}/_matrix/client/r0/rooms/{}:{}/join",
-               self.protocol, self.base_uri, room, self.base_uri);
+    pub fn clear_room(&self, room: &str){
+        let url = format!("{}://{}/_synapse/admin/v1/purge_history/{}:{}",
+               self.protocol, self.base_uri, encode(room), self.base_uri);
         let mut headers: HashMap<String, String> = HashMap::new();
         headers.insert("Authorization".to_string(), format!("Bearer {}", self.token));
-        post(&url, &headers, None)
+        let body = json!({
+            "purge_up_to_ts": 1000,
+            "delete_local_events": true
+        });
+        let result = post(&url, &headers, Some(serde_json::to_string(&body).unwrap()));
+        match result{
+            Ok(response) => println!("OK: {}", response.text().unwrap()),
+            Err(response) => println!("Err: {}", response.to_string()),
+        }
+    }
+    pub fn join_room(&self, room: &str){
+        let url = format!("{}://{}/_matrix/client/r0/join/{}:{}",
+               self.protocol, self.base_uri, encode(room), self.base_uri);
+        let mut headers: HashMap<String, String> = HashMap::new();
+        headers.insert("Authorization".to_string(), format!("Bearer {}", self.token));
+        let result = post(&url, &headers, None);
+        match result{
+            Ok(response) => println!("OK: {}", response.text().unwrap()),
+            Err(response) => println!("Err: {}", response.to_string()),
+        }
     }
 
     pub fn send_markdown_message(&self, room: &str, text: &str){
         let url = format!("{}://{}/_matrix/client/r0/rooms/{}:{}/send/m.room.message",
-               self.protocol, self.base_uri, room, self.base_uri);
-        println!("URL: {}", url);
+               self.protocol, self.base_uri, encode(room), self.base_uri);
         let mut headers: HashMap<String, String> = HashMap::new();
         headers.insert("Authorization".to_string(), format!("Bearer {}", self.token));
         let mut html = markdown::to_html(text);
@@ -132,6 +150,7 @@ impl Bot{
 
 }
 fn get(url: &str, headers: &HashMap<String, String>)->Result<Response, Error>{
+    println!("URL: {}", url);
     let mut header_map = HeaderMap::new();
     for keyvalue in headers{
         header_map.insert(HeaderName::from_str(keyvalue.0).unwrap(),
@@ -145,6 +164,7 @@ fn get(url: &str, headers: &HashMap<String, String>)->Result<Response, Error>{
 }
 
 fn post(url: &str, headers: &HashMap<String, String>, body: Option<String>)->Result<Response, Error>{
+    println!("URL: {}", url);
     let mut header_map = HeaderMap::new();
     for keyvalue in headers{
         header_map.insert(HeaderName::from_str(keyvalue.0).unwrap(),

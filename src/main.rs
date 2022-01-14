@@ -65,6 +65,26 @@ fn main() {
                                 .about("Remove room")
                                 )
                     )
+        .subcommand(App::new("join")
+                    .about("Join")
+                    .subcommand(App::new("room")
+                                .about("Join room")
+                                .arg(Arg::new("room")
+                                     .short('r')
+                                     .required(true)
+                                     .takes_value(true))
+                                )
+                    )
+        .subcommand(App::new("clear")
+                    .about("Clear")
+                    .subcommand(App::new("room")
+                                .about("Clear room")
+                                .arg(Arg::new("room")
+                                     .short('r')
+                                     .required(true)
+                                     .takes_value(true))
+                                )
+                    )
         .subcommand(App::new("send")
                     .about("Send")
                     .subcommand(App::new("message")
@@ -85,43 +105,6 @@ fn main() {
                                 .about("Send image")
                                 )
                     )
-        .subcommand(App::new("create_room")
-                    .about("Create room")
-                    .arg(Arg::new("roomname")
-                         .help("The room name")
-                         .short('r')
-                         .required(true)
-                         .takes_value(true)))
-        .subcommand(App::new("create_user")
-                    .about("Manage user")
-                    .arg(Arg::new("username")
-                         .help("The user name")
-                         .short('u')
-                         .required(true)
-                         .takes_value(true))
-                    .arg(Arg::new("password")
-                         .help("Password for the user")
-                         .short('p')
-                         .required(true)
-                         .takes_value(true))
-                    .arg(Arg::new("admin")
-                         .help("if present set user as admin")
-                         .short('a')
-                         .required(false)
-                         .takes_value(false)))
-        .subcommand(App::new("message")
-                    .about("Send message")
-                    .arg(Arg::new("room")
-                         .short('r')
-                         .required(true)
-                         .takes_value(true))
-                    .arg(Arg::new("text")
-                         .short('t')
-                         .required(true)
-                         .takes_value(true))
-                    .arg(Arg::new("markdown")
-                         .short('m')
-                         .takes_value(false)))
         .get_matches();
     if let Some(sub) = matches.subcommand_matches("create"){
         if let Some(subsub) = sub.subcommand_matches("user"){
@@ -148,6 +131,16 @@ fn main() {
             }else{
                 bot.send_simple_message(room, text)
             }
+        }
+    }else if let Some(sub) = matches.subcommand_matches("join"){
+        if let Some(subsub) = sub.subcommand_matches("room"){
+            let room = subsub.value_of("room").unwrap();
+            bot.join_room(room)
+        }
+    }else if let Some(sub) = matches.subcommand_matches("clear"){
+        if let Some(subsub) = sub.subcommand_matches("room"){
+            let room = subsub.value_of("room").unwrap();
+            bot.clear_room(room)
         }
     }
 }
