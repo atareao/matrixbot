@@ -139,28 +139,15 @@ fn main() {
                 Err(result) => println!("Can not create the room: {}", result),
             }
         }
-    }
-    if let Some(matches) = matches.subcommand_matches("message"){
-        let room = matches.value_of("room").unwrap();
-        let text = matches.value_of("text").unwrap();
-        if matches.is_present("markdown"){
-            bot.send_markdown_message(room, text)
-        }else{
-            bot.send_simple_message(room, text)
-        }
-    }else if let Some(mathes) = matches.subcommand_matches("create_user"){
-        let username = matches.value_of("username").unwrap();
-        let password = matches.value_of("password").unwrap();
-        let admin = mathes.is_present("admin");
-        match bot.create_user(username, password, admin){
-            Ok(result) => println!("User created: {}", result.status()),
-            Err(result) => println!("Can not create the user: {}", result),
-        }
-    }else if let Some(mathes) = matches.subcommand_matches("create_room"){
-        let roomname = matches.value_of("roomname").unwrap();
-        match bot.create_room(roomname){
-            Ok(result) => println!("Room created: {}", result.status()),
-            Err(result) => println!("Can not create the room: {}", result),
+    }else if let Some(sub) = matches.subcommand_matches("send"){
+        if let Some(subsub) = sub.subcommand_matches("message"){
+            let room = subsub.value_of("room").unwrap();
+            let text = subsub.value_of("text").unwrap();
+            if subsub.is_present("markdown"){
+                bot.send_markdown_message(room, text)
+            }else{
+                bot.send_simple_message(room, text)
+            }
         }
     }
 }
