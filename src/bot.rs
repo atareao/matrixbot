@@ -53,6 +53,22 @@ impl Bot{
         });
         post(&url, &headers, Some(serde_json::to_string(&body).unwrap()))
     }
+
+    pub fn block_room(&self, room: &str){
+        let url = format!("{}://{}/_synapse/admin/v1/rooms/{}:{}/block",
+               self.protocol, self.base_uri, encode(room), self.base_uri);
+        let mut headers: HashMap<String, String> = HashMap::new();
+        headers.insert("Authorization".to_string(), format!("Bearer {}", self.token));
+        let body = json!({
+            "block": true
+        });
+        let result = put(&url, &headers, Some(serde_json::to_string(&body).unwrap()));
+        match result{
+            Ok(response) => println!("OK: {}", response.text().unwrap()),
+            Err(response) => println!("Err: {}", response.to_string()),
+        }
+    }
+
     pub fn clear_room(&self, room: &str){
         let url = format!("{}://{}/_synapse/admin/v1/purge_history/{}:{}",
                self.protocol, self.base_uri, encode(room), self.base_uri);
@@ -68,6 +84,7 @@ impl Bot{
             Err(response) => println!("Err: {}", response.to_string()),
         }
     }
+
     pub fn join_room(&self, room: &str){
         let url = format!("{}://{}/_matrix/client/r0/join/{}:{}",
                self.protocol, self.base_uri, encode(room), self.base_uri);
@@ -177,6 +194,23 @@ fn post(url: &str, headers: &HashMap<String, String>, body: Option<String>)->Res
     match body{
         Some(content) => client.post(url).body(content).send(),
         None => client.post(url).send(),
+    }
+}
+
+fn put(url: &str, headers: &HashMap<String, String>, body: Option<String>)->Result<Response, Error>{
+    println!("URL: {}", url);
+    let mut header_map = HeaderMap::new();
+    for keyvalue in headers{
+        header_map.insert(HeaderName::from_str(keyvalue.0).unwrap(),
+                          HeaderValue::from_str(keyvalue.1).unwrap());
+    }
+    let client = Client::builder()
+        .default_headers(header_map)
+        .build()
+        .unwrap();
+    match body{
+        Some(content) => client.post(url).body(content).send(),
+        None => client.put(url).send(),
     }
 }
 

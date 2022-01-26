@@ -56,6 +56,16 @@ fn main() {
                                      )
                                 )
                     )
+        .subcommand(App::new("block")
+                    .about("Block")
+                    .subcommand(App::new(room)
+                                .about("Block a room")
+                                .arg(Arg::new("room")
+                                     .short('r')
+                                     .required(true)
+                                     .takes_value(true))
+                                )
+                    )
         .subcommand(App::new("remove")
                     .about("Remove room, user (to get more info set object)")
                     .subcommand(App::new("user")
@@ -141,6 +151,11 @@ fn main() {
         if let Some(subsub) = sub.subcommand_matches("room"){
             let room = subsub.value_of("room").unwrap();
             bot.clear_room(room)
+        }
+    }else if let Some(sub) = matches.subcommand_matches("block"){
+        if let Some(subsub) = sub.subcommand_matches("room"){
+            let room = subsub.value_of("room").unwrap();
+            bot.block_room(room)
         }
     }
 }
