@@ -58,7 +58,7 @@ fn main() {
                     )
         .subcommand(App::new("block")
                     .about("Block")
-                    .subcommand(App::new(room)
+                    .subcommand(App::new("room")
                                 .about("Block a room")
                                 .arg(Arg::new("room")
                                      .short('r')

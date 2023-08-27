@@ -8,6 +8,7 @@ use hmac::{Hmac, Mac};
 use serde_json::{Value, json};
 use regex::Regex;
 use urlencoding::encode;
+use uuid::Uuid;
 
 type HmacSha1 = Hmac<Sha1>;
 
@@ -28,8 +29,9 @@ impl Bot{
         }
     }
     pub fn send_simple_message(&self, room: &str, text: &str){
-        let url = format!("{}://{}/_matrix/client/r0/rooms/{}:{}/send/m.room.message",
-               self.protocol, self.base_uri, encode(room), self.base_uri);
+        let uuid = Uuid::new_v4().to_string();
+        let url = format!("{}://{}/_matrix/client/v3/rooms/{}:{}/send/m.room.message/{}",
+               self.protocol, self.base_uri, encode(room), self.base_uri, uuid);
         let mut headers: HashMap<String, String> = HashMap::new();
         headers.insert("Authorization".to_string(), format!("Bearer {}", self.token));
         let body = json!({
@@ -209,7 +211,7 @@ fn put(url: &str, headers: &HashMap<String, String>, body: Option<String>)->Resu
         .build()
         .unwrap();
     match body{
-        Some(content) => client.post(url).body(content).send(),
+        Some(content) => client.put(url).body(content).send(),
         None => client.put(url).send(),
     }
 }
